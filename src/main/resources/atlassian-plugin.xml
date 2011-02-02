@@ -5,7 +5,7 @@
         <vendor name="${project.organization.name}" url="${project.organization.url}" />
     </plugin-info>
     
-    <customfield-type key="versionstate" name="Version State, takin into account state of affected issues"
+    <customfield-type key="versionstate" name="Version state"
         class="ua.astapov.jira.plugins.versionstate.VersionStateCFType">
         <description>Displays the state of specified Version, taking into account states of affected issues</description>
         <resource type="velocity" name="view" location="templates/plugins/fields/view/view-rawtext.vm"/>
