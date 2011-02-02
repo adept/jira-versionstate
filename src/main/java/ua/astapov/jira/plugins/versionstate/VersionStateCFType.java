@@ -129,7 +129,7 @@ public class VersionStateCFType extends CalculatedCFType implements SortableCust
         final String projectKey = issue.getProjectObject().getKey();
         final String issueType = issue.getIssueTypeObject().getName();
         // Excluding MTS Project by type
-        String jqlQuery = "project = " + projectKey + " and issuetype != \"" + issueType + "\" and affectedVersion = \"" + verName+ "\" and due <= -1d ORDER BY key DESC";
+        String jqlQuery = "project = " + projectKey + " and issuetype != \"" + issueType + "\" and fixVersion = \"" + verName+ "\" and due <= -1d ORDER BY key DESC";
 
         final SearchService.ParseResult parseResult = searchService.parseQuery(authenticationContext.getUser(), jqlQuery);
 
