@@ -113,7 +113,7 @@ public class VersionStateCFType extends CalculatedCFType implements SortableCust
         				if (overdue.isEmpty()) {
         					versionState="<table><tr><td bgcolor=\"#00ff00\">On time</td></tr></table>";
         				} else {
-        					versionState="<table><tr><td bgcolor=\"#00ffff\">Lagging</td></tr></table>";
+        					versionState="<table><tr><td bgcolor=\"#ffff00\">Delayed</td></tr></table>";
         				}
         			}
         		}
