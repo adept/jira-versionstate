@@ -100,12 +100,12 @@ public class VersionStateCFType extends CalculatedCFType implements SortableCust
         	} else {
         		final Date relDate = ver.getReleaseDate();
         		if (relDate == null) {
-        		   // Version is not dated, leave empty value
-        		   // This should not happen. 
+        			// Version is not dated, considered always on time
+        			versionState="<table><tr><td bgcolor=\"#00ff00\">Not dated</td></tr></table>";
         		} else {
         			if (relDate.before(today)) {
         				// Version is overdue
-        				versionState="<table><tr><td bgcolor=\"#ff0000\">Delayed</td></tr></table>";
+        				versionState="<table><tr><td bgcolor=\"#ff0000\">Overdue</td></tr></table>";
         			} else {
         				// Version is on time, have to check tasks
         				final String verName = ver.getName();
