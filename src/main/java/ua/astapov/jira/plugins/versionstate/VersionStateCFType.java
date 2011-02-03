@@ -4,7 +4,10 @@
  */
 package ua.astapov.jira.plugins.versionstate;
 
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -68,6 +71,19 @@ public class VersionStateCFType extends CalculatedCFType implements SortableCust
         }
     }
 
+    static final Comparator<Version> RELEASE_DATE_ORDER =
+        new Comparator<Version>() {
+    	public int compare(Version v1, Version v2) {
+    		if (v1.getReleaseDate() == null) {
+    			return (-1);
+    		} else if (v2.getReleaseDate() == null) {
+    			return 1;
+    		} else {
+    			return v1.getReleaseDate().compareTo(v2.getReleaseDate());
+    		}
+    	}
+    };
+    
     public Object getValueFromIssue(CustomField field, Issue issue)
     {
     	// Get a list of stored options for the field
@@ -77,8 +93,8 @@ public class VersionStateCFType extends CalculatedCFType implements SortableCust
           return "Please create a single configuration option for this field. Value should be the prefix of the name of the version that you want to monitor";
         }
         
-    	String linkTypeName = ((Option) options.get(0)).getValue();
-        log.debug("linkTypeName: " + linkTypeName);
+    	String targetVerName = ((Option) options.get(0)).getValue();
+        log.debug("linkTypeName: " + targetVerName);
         
         String versionState="";
         
@@ -89,32 +105,50 @@ public class VersionStateCFType extends CalculatedCFType implements SortableCust
         Date today = calendar.getTime();
         
         final Project theProject = issue.getProjectObject();
-        
         // Inspecting all Versions in theProject
-        for (Iterator<Version> allVersions = theProject.getVersions().iterator(); allVersions.hasNext();)
+        // We are interested in the unreleased version with the earliest release date.
+        // Thus, if there are several of them, we take the first and disregard everything else.
+        // If all of them are released, we show "green light", and bail out.
+        
+        List<Version> allVersionsList = new ArrayList<Version>(theProject.getVersions());
+        Collections.sort(allVersionsList, RELEASE_DATE_ORDER);
+        Iterator<Version> allVersions = allVersionsList.iterator();
+        while (allVersions.hasNext())
         {
         	final Version ver = allVersions.next();
-        	if (ver.isReleased()) {
-        		// Version is released, everything is OK
-        		versionState="<table><tr><td bgcolor=\"#00ff00\">Released</td></tr></table>";
-        	} else {
-        		final Date relDate = ver.getReleaseDate();
-        		if (relDate == null) {
-        			// Version is not dated, considered always on time
-        			versionState="<table><tr><td bgcolor=\"#00ff00\">Not dated</td></tr></table>";
+        	if (ver.getName().startsWith(targetVerName)) {
+        		if (ver.isReleased()) {
+        			if (versionState == "") {
+        				// Version is released, and we haven't seen unreleased version yet
+        				// Set state to "green light". If we meet unreleased version later,
+        				// this would be overwritten. Otherwise, we have set versionState
+        				// to correct value
+        				versionState="<table><tr><td bgcolor=\"#00ff00\">Released</td></tr></table>";
+        			}
         		} else {
-        			if (relDate.before(today)) {
-        				// Version is overdue
-        				versionState="<table><tr><td bgcolor=\"#ff0000\">Overdue</td></tr></table>";
+        			// We met unreleased version. If it is dated, we process it and bail out.
+        			// If it is not dated, we continue in hope that we would meet the dated
+        			// version later
+        			Date relDate = ver.getReleaseDate();
+        			if (relDate == null) {
+        				// Version is not dated, considered always on time
+        				versionState="<table><tr><td bgcolor=\"#00ff00\">Not dated</td></tr></table>";
         			} else {
-        				// Version is on time, have to check tasks
-        				final String verName = ver.getName();
-        				final List<Issue> overdue = getOverdueIssues(issue,verName);
-        				if (overdue.isEmpty()) {
-        					versionState="<table><tr><td bgcolor=\"#00ff00\">On time</td></tr></table>";
+        				if (relDate.before(today)) {
+        					// Version is overdue
+        					versionState="<table><tr><td bgcolor=\"#ff0000\">Overdue</td></tr></table>";
         				} else {
-        					versionState="<table><tr><td bgcolor=\"#ffff00\">Delayed</td></tr></table>";
+        					// Version is on time, have to check tasks
+        					final String verName = ver.getName();
+        					final List<Issue> overdue = getOverdueIssues(issue,verName);
+        					if (overdue.isEmpty()) {
+        						versionState="<table><tr><td bgcolor=\"#00ff00\">On time</td></tr></table>";
+        					} else {
+        						versionState="<table><tr><td bgcolor=\"#ffff00\">Delayed</td></tr></table>";
+        					}
         				}
+        				// This was the earliest dated version, no sense in looking further
+        				return versionState;
         			}
         		}
         	}
